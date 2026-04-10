@@ -1,0 +1,138 @@
+/* AI CHAT PAGE */
+
+.ai-layout{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  background:#f7f9fc;
+}
+
+.chat-messages{
+  flex:1;
+  width:650px;
+  margin-top:40px;
+  overflow-y:auto;
+}
+
+.user-msg{
+  background:#0f62fe;
+  color:white;
+  padding:10px 14px;
+  border-radius:10px;
+  width:fit-content;
+  margin:10px 0 10px auto;
+}
+
+.ai-msg{
+  background:#e5e7eb;
+  padding:10px 14px;
+  border-radius:10px;
+  width:fit-content;
+  margin:10px 0;
+}
+
+.suggestions{
+  width:650px;
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.suggestions button{
+  padding:8px 12px;
+  border-radius:20px;
+  border:1px solid #ccc;
+  background:white;
+  cursor:pointer;
+}
+
+.input-area{
+  width:650px;
+  display:flex;
+  margin-bottom:25px;
+}
+
+.input-area input{
+  flex:1;
+  padding:12px;
+  border-radius:20px;
+  border:1px solid #ccc;
+}
+
+.input-area button{
+  margin-left:10px;
+  padding:12px 18px;
+  border:none;
+  border-radius:20px;
+  background:#0f62fe;
+  color:white;
+  cursor:pointer;
+}
+/* LOGIN PAGE STYLING */
+
+.login-container{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#0f62fe,#42a5f5);
+}
+
+.login-card{
+  background:white;
+  padding:40px;
+  border-radius:14px;
+  width:340px;
+  text-align:center;
+  box-shadow:0 15px 35px rgba(0,0,0,0.2);
+}
+
+.logo{
+  font-size:28px;
+  margin-bottom:6px;
+  color:#0f62fe;
+}
+
+.tagline{
+  color:#666;
+  margin-bottom:25px;
+  font-size:14px;
+}
+
+.login-input{
+  width:100%;
+  padding:14px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  margin-bottom:15px;
+  font-size:14px;
+}
+
+.login-input:focus{
+  outline:none;
+  border-color:#0f62fe;
+}
+
+.login-button{
+  width:100%;
+  padding:14px;
+  background:#ff4d4f;
+  border:none;
+  border-radius:8px;
+  color:white;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.login-button:hover{
+  background:#d9363e;
+}
+
+.secure-text{
+  font-size:12px;
+  color:#777;
+  margin-top:15px;
+}
