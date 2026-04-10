@@ -6,13 +6,17 @@ function AmbulanceStatus() {
 
   const hospital = [12.9910, 77.6880];
   const patient = [12.9969, 77.6947];
+  const kamdhenu = [12.9948, 77.6915];
 
   const [route, setRoute] = useState([]);
-  const [altRoute, setAltRoute] = useState([]);
+  const [trafficSegment, setTrafficSegment] = useState([]);
   const [ambulanceIndex, setAmbulanceIndex] = useState(0);
   const [stage, setStage] = useState("toPatient");
   const [distance, setDistance] = useState(0);
-  const [rerouted, setRerouted] = useState(false);
+  const [trafficTriggered, setTrafficTriggered] = useState(false);
+
+  // smooth position state
+  const [ambulancePos, setAmbulancePos] = useState(hospital);
 
   const driver = {
     name: "Ramesh Kumar",
@@ -20,7 +24,6 @@ function AmbulanceStatus() {
     vehicle: "KA-03-AMB-2211"
   };
 
-  // fetch main route
   const fetchRoute = async (start, end) => {
 
     const url =
@@ -36,45 +39,38 @@ function AmbulanceStatus() {
 
     setRoute(coords);
     setAmbulanceIndex(0);
+    setAmbulancePos(coords[0]);
 
     const km = data.routes[0].distance / 1000;
     setDistance(km.toFixed(2));
   };
 
-  // fetch alternate route (simulated traffic reroute)
-  const fetchAltRoute = async (start, end) => {
+  const fetchAlternateRoute = async (start) => {
 
     const url =
       `https://router.project-osrm.org/route/v1/driving/` +
-      `${start[1]},${start[0]};${end[1]},${end[0]}` +
-      `?overview=full&geometries=geojson&alternatives=true`;
+      `${start[1]},${start[0]};${kamdhenu[1]},${kamdhenu[0]};${patient[1]},${patient[0]}` +
+      `?overview=full&geometries=geojson`;
 
     const res = await fetch(url);
     const data = await res.json();
 
-    if(data.routes.length > 1){
+    const coords =
+      data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
 
-      const coords =
-        data.routes[1].geometry.coordinates.map(c => [c[1], c[0]]);
-
-      setAltRoute(coords);
-
-    }
-
+    setRoute(coords);
+    setAmbulanceIndex(0);
+    setAmbulancePos(coords[0]);
   };
 
-  // initial route
   useEffect(() => {
-
     fetchRoute(hospital, patient);
-    fetchAltRoute(hospital, patient);
-
   }, []);
 
-  // movement
+  // ORIGINAL MOVEMENT LOGIC
   useEffect(() => {
 
-    if(route.length === 0) return;
+    if (route.length === 0) return;
 
     const interval = setInterval(() => {
 
@@ -82,43 +78,53 @@ function AmbulanceStatus() {
 
         const next = prev + 1;
 
-        // simulate reroute after 40% travel
-        if(!rerouted && next > route.length * 0.4){
+        // TRAFFIC near hospital
+        if (
+          stage === "toPatient" &&
+          !trafficTriggered &&
+          next > route.length * 0.2
+        ) {
 
-          setRerouted(true);
+          setTrafficTriggered(true);
 
-          if(altRoute.length > 0){
+          const trafficPart = route.slice(next, next + 25);
+          setTrafficSegment(trafficPart);
 
-            setRoute(altRoute);
-            return 0;
+          const currentLocation = route[next];
 
-          }
+          setTimeout(() => {
 
+            setTrafficSegment([]);
+            fetchAlternateRoute(currentLocation);
+
+          }, 2000);
+
+          return prev;
         }
 
-        if(next >= route.length){
+        if (next >= route.length) {
 
           setDistance(0);
 
-          if(stage === "toPatient"){
+          if (stage === "toPatient") {
+
+            alert("🚑 Ambulance reached patient");
 
             setStage("toHospital");
-            setRerouted(false);
+            setTrafficTriggered(false);
 
             fetchRoute(patient, hospital);
-            fetchAltRoute(patient, hospital);
 
             return 0;
-
           }
 
-          if(stage === "toHospital"){
+          if (stage === "toHospital") {
 
+            alert("🏥 Patient reached hospital");
             clearInterval(interval);
+
             return prev;
-
           }
-
         }
 
         const remaining =
@@ -130,33 +136,73 @@ function AmbulanceStatus() {
 
       });
 
-    },1000);
+    }, 1000);
 
     return () => clearInterval(interval);
 
-  },[route, stage, altRoute, rerouted]);
+  }, [route, stage, trafficTriggered]);
 
-  const ambulance = route[ambulanceIndex] || hospital;
+  // SMOOTH ANIMATION
+  useEffect(() => {
+
+    if (route.length < 2) return;
+
+    let frame;
+
+    const animate = () => {
+
+      setAmbulancePos(prev => {
+
+        const i = ambulanceIndex;
+
+        if (i >= route.length - 1) return prev;
+
+        const start = route[i];
+        const end = route[i + 1];
+
+        const lat = prev[0] + (end[0] - prev[0]) * 0.08;
+        const lng = prev[1] + (end[1] - prev[1]) * 0.08;
+
+        return [lat, lng];
+      });
+
+      frame = requestAnimationFrame(animate);
+
+    };
+
+    frame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frame);
+
+  }, [ambulanceIndex, route]);
+
+  const ambulance = ambulancePos;
   const remainingRoute = route.slice(ambulanceIndex);
 
   return (
 
-    <div style={{ textAlign:"center", marginTop:"20px" }}>
+    <div style={{ textAlign: "center", marginTop: "20px" }}>
 
-      <h2>🚑 Smart Ambulance Navigation</h2>
+      <h2>🚑 Emergency Ambulance Tracking</h2>
+
+      <h3>
+        Status: {stage === "toPatient"
+          ? "🚑 Going to Patient"
+          : "🏥 Going to Hospital"}
+      </h3>
 
       <h3>Distance Remaining: {distance} km</h3>
 
       <div style={{
-        width:"85%",
-        margin:"20px auto",
-        height:"450px"
+        width: "85%",
+        margin: "20px auto",
+        height: "450px"
       }}>
 
         <MapContainer
-          center={hospital}
+          center={patient}
           zoom={14}
-          style={{ height:"100%", width:"100%" }}
+          style={{ height: "100%", width: "100%" }}
         >
 
           <TileLayer
@@ -164,36 +210,38 @@ function AmbulanceStatus() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* current route */}
-          <Polyline positions={remainingRoute} color="red"/>
+          <Polyline
+            positions={remainingRoute}
+            pathOptions={{ color: "red", weight: 5 }}
+          />
 
-          {/* alternate route */}
-          {altRoute.length > 0 && (
-            <Polyline positions={altRoute} color="blue"/>
+          {trafficSegment.length > 0 && (
+            <Polyline
+              positions={trafficSegment}
+              pathOptions={{
+                color: "orange",
+                weight: 10,
+                dashArray: "8,12"
+              }}
+            />
           )}
 
-          {/* hospital */}
+          {stage === "toPatient" && (
+            <Marker position={patient}>
+              <Popup>📍 Patient Location</Popup>
+            </Marker>
+          )}
+
           <Marker position={hospital}>
             <Popup>🏥 Hospital</Popup>
           </Marker>
 
-          {/* patient */}
-          {stage === "toPatient" && (
-            <Marker position={patient}>
-              <Popup>📍 Patient</Popup>
-            </Marker>
-          )}
-
-          {/* ambulance */}
           <Marker position={ambulance}>
             <Popup>
-
-              <b>🚑 Ambulance</b><br/><br/>
-
-              Driver: {driver.name}<br/>
-              Phone: {driver.phone}<br/>
+              <b>🚑 Ambulance</b><br /><br />
+              Driver: {driver.name}<br />
+              Phone: {driver.phone}<br />
               Vehicle: {driver.vehicle}
-
             </Popup>
           </Marker>
 
@@ -204,7 +252,6 @@ function AmbulanceStatus() {
     </div>
 
   );
-
 }
 
 export default AmbulanceStatus;
